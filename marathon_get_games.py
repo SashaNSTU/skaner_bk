@@ -75,7 +75,8 @@ def marathon_update_games(sport):
                 div_game_id = div_league_id.find_all("div", {"data-event-treeid": True})
                 for div in div_game_id:
                     game_id = div["data-event-treeid"]
-                    game = div.find_all("div", class_=re.compile("member-name"))
+                    game = div.find_all("div", class_=re.compile("command"))
+                    member_name = [g.find("b").text[:1] for g in game]
                     game_time = div.find("td", {"class": '\\"date'})
                     date_str = game_time.text.strip()
                     if (len(date_str) < 6):
@@ -89,8 +90,12 @@ def marathon_update_games(sport):
                         formatted_date = date.strftime('%m-%d %H:%M:%S')
                     digits = ''.join(filter(str.isdigit, game_id))
                     team_names = [g.find("span").text for g in game]
-                    team1 = team_names[1]
-                    team2 = team_names[0]
+                    if (member_name[0] == '1'):
+                        team1 = team_names[0]
+                        team2 = team_names[1]
+                    else:
+                        team1 = team_names[1]
+                        team2 = team_names[0]
                     if team1 is None or team2 is None or game_id is None:  # проверка на наличие значения
                         continue
                     with connection.cursor() as cursor:

@@ -40,7 +40,8 @@ for container in containers:
         div_game_id = div_league_id.find_all("div", {"data-event-treeid": True})
         for div in div_game_id:
             game_id = div["data-event-treeid"]
-            game = div.find_all("div", class_=re.compile("member-name"))
+            game = div.find_all("div", class_=re.compile("command"))
+            member_name = [g.find("b").text[:1] for g in game]
             game_time = div.find("td", {"class": '\\"date'})
             date_str = game_time.text.strip()
             if(len(date_str) < 6):
@@ -56,8 +57,12 @@ for container in containers:
             digits = ''.join(filter(str.isdigit, game_id))
             team_names = [g.find("span").text for g in game]
             if len(team_names) >= 2:
-                team1 = team_names[0]
-                team2 = team_names[1]
+                if (member_name[0] == '1'):
+                    team1 = team_names[0]
+                    team2 = team_names[1]
+                else:
+                    team1 = team_names[1]
+                    team2 = team_names[0]
                 print(digits, " | ", team1, " - ", team2)
             else:
                 print(digits, " | Error: team names not found")

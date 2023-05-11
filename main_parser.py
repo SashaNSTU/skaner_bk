@@ -3,6 +3,7 @@ from xstavka_get_games import xstavka_update_games
 from marathon_get_games import marathon_update_games
 from config import host, user, password, db_name
 import numpy as np
+from difflib import SequenceMatcher
 
 def levenshtein_distance(s1, s2):
     if len(s1) < len(s2):
@@ -45,6 +46,40 @@ finally:
 marathon_update_games("Basketball")
 xstavka_update_games("Basketball")
 
+
+# print(SequenceMatcher(None, "Зенит Санкт-Петербург ЦСКА Москва", "Зенит ЦСКА").ratio())
+
+try:
+    connection = psycopg2.connect(
+                host=host,
+                user=user,
+                password=password,
+                database=db_name
+            )
+
+    with connection.cursor() as cursor:
+    # выполнение запроса на выборку данных
+        cursor.execute("SELECT name_team1, name_team2 FROM games")
+        records = cursor.fetchall()
+        games = []
+
+        for record in records:
+            games.append(record[0] + " " + record[1])
+
+    for i, game1 in enumerate(games):
+        for j in range(i + 1, len(games)):
+            game2 = games[j]
+            similarity = SequenceMatcher(None, game1, game2).ratio()
+            if(similarity > 0.73):
+                print(f"Similarity between {game1} and {game2}: {similarity}")
+
+
+
+except Exception as ex:
+    print("[INFO] Error", ex)
+finally:
+    connection.close()
+
 # try:
 #     connection = psycopg2.connect(
 #         host=host,
@@ -64,7 +99,7 @@ xstavka_update_games("Basketball")
 #             for game1 in games_with_team:
 #                 for game2 in games_with_team:
 #                     if game1[0] != game2[0] and game1[3] != game2[3]:
-#                         if levenshtein_distance(game1[1], game2[1]) < 10.0 and levenshtein_distance(game1[2], game2[2]) < 10.0:
+#                         if levenshtein_distance(game1[1], game2[1]) < 15.0 and levenshtein_distance(game1[2], game2[2]) < 15.0:
 #                             break
 #                 else:
 #                     cursor.execute("DELETE FROM games WHERE game_id = %s", (game1[0],))
