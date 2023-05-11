@@ -1,4 +1,7 @@
 import psycopg2
+
+from datetime import datetime
+import datetime
 from get_leagues import get_leagues
 from get_games import get_games
 from config import host, user, password, db_name
@@ -58,13 +61,16 @@ def xstavka_update_games(sport):
                         game_id = games["Value"][game].get("CI")
                         team1 = games["Value"][game].get("O1")
                         team2 = games["Value"][game].get("O2")
+                        timestamp = games["Value"][game].get("S") - 4 * 3600
+                        game_date = datetime.datetime.fromtimestamp(timestamp)
+                        game_date = game_date.strftime('%m-%d %H:%M:%S')
                         if team1 is None or team2 is None or game_id is None:  # проверка на наличие значения
                             continue
                         with connection.cursor() as cursor:
                             cursor.execute(
-                                """INSERT INTO games(game_id, name_team1, name_team2, fk_league_id, fk_bookmaker_id) 
-                                VALUES (%s, %s, %s, %s, %s);""",
-                                (game_id, team1, team2, ids[champ], bookmaker_id)
+                                """INSERT INTO games(game_id, game_date, name_team1, name_team2, fk_league_id, fk_bookmaker_id) 
+                                VALUES (%s, %s, %s, %s, %s, %s);""",
+                                (game_id, game_date, team1, team2, ids[champ], bookmaker_id)
                             )
                             print("[INFO] Data was successfully inserted", ids[champ])
 

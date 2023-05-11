@@ -1,10 +1,26 @@
 import re
 import requests
+from datetime import datetime
+import datetime
 from bs4 import BeautifulSoup
 params = {
     'pageAction': 'default',
     '_': '1683634845180',
 }
+months_dict = {
+        'января': 'January',
+        'февраля': 'February',
+        'марта': 'March',
+        'апреля': 'April',
+        'мая': 'May',
+        'июня': 'June',
+        'июля': 'July',
+        'августа': 'August',
+        'сентября': 'September',
+        'октября': 'October',
+        'ноября': 'November',
+        'декабря': 'December'
+    }
 
 response = requests.get('https://www.marathonbet.ru/su/betting/6', params=params )
 soup = BeautifulSoup(response.text, 'html.parser')
@@ -25,6 +41,18 @@ for container in containers:
         for div in div_game_id:
             game_id = div["data-event-treeid"]
             game = div.find_all("div", class_=re.compile("member-name"))
+            game_time = div.find("td", {"class": '\\"date'})
+            date_str = game_time.text.strip()
+            if(len(date_str) < 6):
+                today = datetime.datetime.now()
+                today_month_day = today.strftime("%m-%d")
+                formatted_date = today_month_day + " " + date_str+":00"
+            else:
+                for k, v in months_dict.items():
+                    date_str = date_str.replace(k, v)
+                date = datetime.datetime.strptime(date_str, '%d %B %H:%M')
+                formatted_date = date.strftime('%m-%d %H:%M:%S')
+            print(formatted_date)
             digits = ''.join(filter(str.isdigit, game_id))
             team_names = [g.find("span").text for g in game]
             if len(team_names) >= 2:

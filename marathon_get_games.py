@@ -1,10 +1,25 @@
 import psycopg2
 import requests
 import re
+from datetime import datetime
+import datetime
 from bs4 import BeautifulSoup
 from get_leagues import get_leagues
 from config import host, user, password, db_name
-
+months_dict = {
+        'января': 'January',
+        'февраля': 'February',
+        'марта': 'March',
+        'апреля': 'April',
+        'мая': 'May',
+        'июня': 'June',
+        'июля': 'July',
+        'августа': 'August',
+        'сентября': 'September',
+        'октября': 'October',
+        'ноября': 'November',
+        'декабря': 'December'
+}
 
 def marathon_update_games(sport):
     try:
@@ -61,6 +76,17 @@ def marathon_update_games(sport):
                 for div in div_game_id:
                     game_id = div["data-event-treeid"]
                     game = div.find_all("div", class_=re.compile("member-name"))
+                    game_time = div.find("td", {"class": '\\"date'})
+                    date_str = game_time.text.strip()
+                    if (len(date_str) < 6):
+                        today = datetime.datetime.now()
+                        today_month_day = today.strftime("%m-%d")
+                        formatted_date = today_month_day + " " + date_str + ":00"
+                    else:
+                        for k, v in months_dict.items():
+                            date_str = date_str.replace(k, v)
+                        date = datetime.datetime.strptime(date_str, '%d %B %H:%M')
+                        formatted_date = date.strftime('%m-%d %H:%M:%S')
                     digits = ''.join(filter(str.isdigit, game_id))
                     team_names = [g.find("span").text for g in game]
                     team1 = team_names[1]
@@ -69,9 +95,9 @@ def marathon_update_games(sport):
                         continue
                     with connection.cursor() as cursor:
                         cursor.execute(
-                            """INSERT INTO games(game_id, name_team1, name_team2, fk_league_id, fk_bookmaker_id) 
-                            VALUES (%s, %s, %s, %s, %s);""",
-                            (digits, team1, team2, leagues_id, bookmaker_id)
+                            """INSERT INTO games(game_id, game_date, name_team1, name_team2, fk_league_id, fk_bookmaker_id) 
+                            VALUES (%s, %s, %s, %s, %s, %s);""",
+                            (digits, formatted_date, team1, team2, leagues_id, bookmaker_id)
                         )
                         print("[INFO] Data was successfully inserted", leagues_id)
 

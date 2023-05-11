@@ -1,4 +1,7 @@
 import requests
+from datetime import datetime
+import datetime
+import locale
 
 def GameName(result):
     for game in range(0, len(result)):
@@ -79,4 +82,36 @@ def main():
     ChampsId(result)
 
 if __name__ == '__main__':
-    main()
+    months_dict = {
+        'января': 'January',
+        'февраля': 'February',
+        'марта': 'March',
+        'апреля': 'April',
+        'мая': 'May',
+        'июня': 'June',
+        'июля': 'July',
+        'августа': 'August',
+        'сентября': 'September',
+        'октября': 'October',
+        'ноября': 'November',
+        'декабря': 'December'
+    }
+
+    today = datetime.datetime.now()
+    today_month_day = today.strftime("%m-%d")
+
+    print(today_month_day)
+
+    date_str = '  12 мая 02:30  '
+    date_str = date_str.strip()
+    print(date_str)
+    for k, v in months_dict.items():
+        date_str = date_str.replace(k, v)
+    date = datetime.datetime.strptime(date_str, '%H:%M')
+    formatted_date = date.strftime('%H:%M:%S')
+    print(formatted_date)
+
+    timestamp = 1645423800  # example timestamp
+    game_date = datetime.datetime.fromtimestamp(timestamp)
+    game_date = game_date.strftime('%m-%d %H:%M:%S')
+    print(game_date)
