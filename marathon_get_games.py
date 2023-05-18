@@ -5,20 +5,21 @@ from datetime import datetime
 import datetime
 from bs4 import BeautifulSoup
 from get_leagues import get_leagues
+from marathon_get_odds import RESULT_2WAY
 from config import host, user, password, db_name
 months_dict = {
-        'января': 'January',
-        'февраля': 'February',
-        'марта': 'March',
-        'апреля': 'April',
+        'янв': 'January',
+        'фев': 'February',
+        'мар': 'March',
+        'апр': 'April',
         'мая': 'May',
-        'июня': 'June',
-        'июля': 'July',
-        'августа': 'August',
-        'сентября': 'September',
-        'октября': 'October',
-        'ноября': 'November',
-        'декабря': 'December'
+        'июн': 'June',
+        'июл': 'July',
+        'авг': 'August',
+        'сен': 'September',
+        'окт': 'October',
+        'ноя': 'November',
+        'дек': 'December'
 }
 
 def marathon_update_games(sport):
@@ -30,15 +31,14 @@ def marathon_update_games(sport):
             database=db_name
         )
         connection.autocommit = True
-
         bookmaker = 'marathonbet'
 
         with connection.cursor() as cursor:
             cursor.execute(
-                """SELECT sports.id FROM sports
-                INNER JOIN bookmaker_sports ON sports.id = bookmaker_sports.fk_sport_id
-                INNER JOIN bookmakers ON bookmaker_sports.fk_bookmaker_id = bookmakers.id
-                WHERE sports.name_sport = %s AND bookmakers.name_bookmaker = %s;""",
+                """SELECT sports.sport_id FROM sports
+                INNER JOIN bookmaker_sports ON sports.id = bookmaker_sports.sport_id
+                INNER JOIN bookmakers ON bookmaker_sports.bookmaker_id = bookmakers.id
+                WHERE sports.sport_name = %s AND bookmakers.name_bookmaker = %s;""",
                 (sport, bookmaker)
             )
             sport_id = cursor.fetchone()[0]
@@ -47,17 +47,23 @@ def marathon_update_games(sport):
 
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT id FROM bookmakers WHERE name_bookmaker = %s;",
-                (bookmaker,)
+                """SELECT bookmaker_sports.id 
+                FROM bookmaker_sports
+                INNER JOIN bookmakers ON bookmaker_sports.bookmaker_id = bookmakers.id
+                INNER JOIN sports ON bookmaker_sports.sport_id = sports.id
+                WHERE bookmakers.name_bookmaker = %s AND sports.sport_name = %s;""",
+                (bookmaker, sport)
             )
             result = cursor.fetchone()
             if result:
-                bookmaker_id = result[0]
+                fk_bookmaker_sport_id = result[0]
+
 
         leagues_containers = leagues.find_all('div', {'id': re.compile('container_(\d+)')})
 
         for league in leagues_containers:
             leagues_id = league['id'].split('_')[1].strip('\\"')
+
             span = league.find('span')
             name_league = span.text
             name_league = name_league[:-1]
@@ -65,9 +71,9 @@ def marathon_update_games(sport):
 
                 with connection.cursor() as cursor:
                     cursor.execute(
-                        """INSERT INTO leagues(league_id, name_league, fk_sport_id) 
-                        VALUES (%s, %s, %s);""",
-                        (leagues_id, name_league, sport_id)
+                        """INSERT INTO leagues(league_id, league_name, fk_bookmaker_sport_id) 
+                                        VALUES (%s, %s, %s);""",
+                        (leagues_id, name_league, fk_bookmaker_sport_id)
                     )
                     print("[INFO] Data was successfully inserted")
 
@@ -100,13 +106,61 @@ def marathon_update_games(sport):
                         continue
                     with connection.cursor() as cursor:
                         cursor.execute(
-                            """INSERT INTO games(game_id, game_date, name_team1, name_team2, fk_league_id, fk_bookmaker_id) 
-                            VALUES (%s, %s, %s, %s, %s, %s);""",
-                            (digits, formatted_date, team1, team2, leagues_id, bookmaker_id)
+                            "SELECT id FROM leagues WHERE league_id = %s;",
+                            (league['id'].split('_')[1].strip('\\"'),)
                         )
-                        print("[INFO] Data was successfully inserted", leagues_id)
+                        league_id = cursor.fetchone()[0]
+                    with connection.cursor() as cursor:
+                        cursor.execute(
+                            """INSERT INTO games(game_id, date_game, name_team1, name_team2, league_id, sport_name, bookmaker_name) 
+                                                    VALUES (%s, %s, %s, %s, %s, %s, %s);""",
+                            (digits, formatted_date, team1, team2, league_id, sport, bookmaker)
+                        )
+                        print("[INFO] Data was successfully inserted", league_id)
+                    # ODDS
+                    RESULT_2WAY = div.find_all('td', attrs={'data-market-type': '\\"RESULT_2WAY\\"'})
+                    for i in range(0, len(RESULT_2WAY)):
+                        span_element = RESULT_2WAY[i].find('span')
+                        if span_element:
+                            odd = span_element.get_text()
+                            if odd != '—':
+                                if (member_name[0] == '1' and i == 0):
+                                    bet_descript = "П1"
+                                if (member_name[0] == '1' and i == 1):
+                                    bet_descript = "П2"
+                                if (member_name[0] == '2' and i == 0):
+                                    bet_descript = "П2"
+                                if (member_name[0] == '2' and i == 1):
+                                    bet_descript = "П1"
+                                with connection.cursor() as cursor:
+                                    cursor.execute(
+                                        """INSERT INTO odds(game_id, league_id, bet_type_id, odd_value, bet_description)
+                                                                VALUES (%s, %s, %s, %s, %s);""",
+                                        (digits, league_id, 1, odd, bet_descript)
+                                    )
 
-
+                    RESULT = div.find_all('td', attrs={'data-market-type': '\\"RESULT\\"'})
+                    for i in range(0, len(RESULT)):
+                        span_element = RESULT[i].find('span')
+                        if span_element:
+                            odd = span_element.get_text()
+                            if odd != '—':
+                                if (member_name[0] == '1' and i == 0):
+                                    bet_descript = "П1"
+                                if (member_name[0] == '1' and i == 2):
+                                    bet_descript = "П2"
+                                if (member_name[0] == '2' and i == 0):
+                                    bet_descript = "П2"
+                                if (member_name[0] == '2' and i == 2):
+                                    bet_descript = "П1"
+                                if i == 1:
+                                    bet_descript = "Н"
+                                with connection.cursor() as cursor:
+                                    cursor.execute(
+                                        """INSERT INTO odds(game_id, league_id, bet_type_id, odd_value, bet_description)
+                                                                VALUES (%s, %s, %s, %s, %s);""",
+                                        (digits, league_id, 1, odd, bet_descript)
+                                    )
 
     except Exception as ex:
         print("[INFO] Error", ex)
