@@ -1,12 +1,10 @@
-import psycopg2
-import requests
-import re
 from datetime import datetime
-import datetime
-from bs4 import BeautifulSoup
 from get_leagues import get_leagues
-from marathon_get_odds import RESULT_2WAY
 from config import host, user, password, db_name
+import psycopg2
+import re
+import datetime
+
 months_dict = {
         'янв': 'January',
         'фев': 'February',
@@ -118,9 +116,9 @@ def marathon_update_games(sport):
                         )
                         print("[INFO] Data was successfully inserted", league_id)
                     # ODDS
-                    RESULT_2WAY = div.find_all('td', attrs={'data-market-type': '\\"RESULT_2WAY\\"'})
-                    for i in range(0, len(RESULT_2WAY)):
-                        span_element = RESULT_2WAY[i].find('span')
+                    RESULT = div.find_all('td', attrs={'data-market-type': '\\"RESULT_2WAY\\"'})
+                    for i in range(0, len(RESULT)):
+                        span_element = RESULT[i].find('span')
                         if span_element:
                             odd = span_element.get_text()
                             if odd != '—':
@@ -133,15 +131,20 @@ def marathon_update_games(sport):
                                 if (member_name[0] == '2' and i == 1):
                                     bet_descript = "П1"
                                 with connection.cursor() as cursor:
+                                    # Получение bet_type_id из таблицы bet_types
+                                    cursor.execute("SELECT id FROM bet_types WHERE name = %s", ("РЕЗУЛЬТАТ",))
+                                    bet_type_id = cursor.fetchone()[
+                                        0]  # Получение значения первого столбца первой строки
+                                    # Вставка записи в таблицу odds
                                     cursor.execute(
-                                        """INSERT INTO odds(game_id, league_id, bet_type_id, odd_value, bet_description)
-                                                                VALUES (%s, %s, %s, %s, %s);""",
-                                        (digits, league_id, 1, odd, bet_descript)
+                                        """INSERT INTO odds (game_id, league_id, bet_type_id, odd_value, bet_description)
+                                           VALUES (%s, %s, %s, %s, %s);""",
+                                        (digits, league_id, bet_type_id, odd, bet_descript)
                                     )
 
-                    RESULT = div.find_all('td', attrs={'data-market-type': '\\"RESULT\\"'})
-                    for i in range(0, len(RESULT)):
-                        span_element = RESULT[i].find('span')
+                    RESULT_PNP = div.find_all('td', attrs={'data-market-type': '\\"RESULT\\"'})
+                    for i in range(0, len(RESULT_PNP)):
+                        span_element = RESULT_PNP[i].find('span')
                         if span_element:
                             odd = span_element.get_text()
                             if odd != '—':
@@ -156,12 +159,83 @@ def marathon_update_games(sport):
                                 if i == 1:
                                     bet_descript = "Н"
                                 with connection.cursor() as cursor:
+                                    # Получение bet_type_id из таблицы bet_types
+                                    cursor.execute("SELECT id FROM bet_types WHERE name = %s", ("РЕЗУЛЬТАТ_ПНП",))
+                                    bet_type_id = cursor.fetchone()[
+                                        0]  # Получение значения первого столбца первой строки
+                                    # Вставка записи в таблицу odds
                                     cursor.execute(
-                                        """INSERT INTO odds(game_id, league_id, bet_type_id, odd_value, bet_description)
-                                                                VALUES (%s, %s, %s, %s, %s);""",
-                                        (digits, league_id, 1, odd, bet_descript)
+                                        """INSERT INTO odds (game_id, league_id, bet_type_id, odd_value, bet_description)
+                                           VALUES (%s, %s, %s, %s, %s);""",
+                                        (digits, league_id, bet_type_id, odd, bet_descript)
                                     )
 
+                    HANDICAP = div.find_all('td', attrs={'data-market-type': '\\"HANDICAP\\"'})
+                    for i in range(0, len(HANDICAP)):
+                        span_element = HANDICAP[i].find('span')
+                        if span_element:
+                            odd = span_element.get_text()
+                            if odd != '—':
+                                if (member_name[0] == '1' and i == 0):
+                                    bet_descript = "1 " + HANDICAP[i].contents[0].get_text(strip=True) if HANDICAP[0].contents else ''
+                                    bet_descript = bet_descript.replace('(', '').replace(')', '')
+                                if (member_name[0] == '1' and i == 1):
+                                    bet_descript = "2 " + HANDICAP[i].contents[0].get_text(strip=True) if HANDICAP[0].contents else ''
+                                    bet_descript = bet_descript.replace('(', '').replace(')', '')
+                                if (member_name[0] == '2' and i == 0):
+                                    bet_descript = "2 " + HANDICAP[i].contents[0].get_text(strip=True) if HANDICAP[0].contents else ''
+                                    bet_descript = bet_descript.replace('(', '').replace(')', '')
+                                if (member_name[0] == '2' and i == 1):
+                                    bet_descript = "1 " + HANDICAP[i].contents[0].get_text(strip=True) if HANDICAP[0].contents else ''
+                                    bet_descript = bet_descript.replace('(', '').replace(')', '')
+                                with connection.cursor() as cursor:
+                                    # Получение bet_type_id из таблицы bet_types
+                                    cursor.execute("SELECT id FROM bet_types WHERE name = %s", ("ФОРА",))
+                                    bet_type_id = cursor.fetchone()[
+                                        0]  # Получение значения первого столбца первой строки
+                                    # Вставка записи в таблицу odds
+                                    cursor.execute(
+                                        """INSERT INTO odds (game_id, league_id, bet_type_id, odd_value, bet_description)
+                                           VALUES (%s, %s, %s, %s, %s);""",
+                                        (digits, league_id, bet_type_id, odd, bet_descript)
+                                    )
+
+                    TOTAL = div.find_all('td', attrs={'data-market-type': '\\"TOTAL\\"'})
+                    for i in range(0, len(TOTAL)):
+                        span_element = TOTAL[i].find('span')
+                        if span_element:
+                            odd = span_element.get_text()
+                            if odd != '—':
+                                if (member_name[0] == '1' and i == 0):
+                                    bet_descript = TOTAL[i].contents[0].get_text(strip=True) if TOTAL[
+                                        0].contents else ''
+                                    bet_descript = bet_descript.replace('(', '').replace(')', '') + " М"
+                                if (member_name[0] == '1' and i == 1):
+                                    bet_descript = TOTAL[i].contents[0].get_text(strip=True) if HANDICAP[
+                                        0].contents else ''
+                                    bet_descript = bet_descript.replace('(', '').replace(')', '') + " Б"
+                                if (member_name[0] == '2' and i == 0):
+                                    bet_descript = TOTAL[i].contents[0].get_text(strip=True) if TOTAL[
+                                        0].contents else ''
+                                    bet_descript = bet_descript.replace('(', '').replace(')', '') + " Б"
+                                if (member_name[0] == '2' and i == 1):
+                                    bet_descript = TOTAL[i].contents[0].get_text(strip=True) if TOTAL[
+                                        0].contents else ''
+                                    bet_descript = bet_descript.replace('(', '').replace(')', '') + " М"
+
+                                with connection.cursor() as cursor:
+                                    # Получение bet_type_id из таблицы bet_types
+                                    cursor.execute("SELECT id FROM bet_types WHERE name = %s", ("ТОТАЛ",))
+                                    bet_type_id = cursor.fetchone()[
+                                        0]  # Получение значения первого столбца первой строки
+
+                                    # Вставка записей в таблицу odds
+                                    query = """
+                                        INSERT INTO odds (game_id, league_id, bet_type_id, odd_value, bet_description)
+                                        VALUES (%s, %s, %s, %s, %s);
+                                    """
+                                    params = (digits, league_id, bet_type_id, odd, bet_descript)
+                                    cursor.execute(query, params)
     except Exception as ex:
         print("[INFO] Error", ex)
     finally:

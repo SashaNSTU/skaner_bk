@@ -1,10 +1,10 @@
-import psycopg2
-
-from datetime import datetime
-import datetime
 from get_leagues import get_leagues
 from get_games import get_games
 from config import host, user, password, db_name
+from datetime import datetime
+import psycopg2
+import datetime
+
 
 def xstavka_update_games(sport):
     try:
@@ -101,7 +101,7 @@ def xstavka_update_games(sport):
                             bet_descript = "П2"
                         with connection.cursor() as cursor:
                             # Получение bet_type_id из таблицы bet_types
-                            cursor.execute("SELECT id FROM bet_types WHERE name = %s", ("РЕЗУЛЬТАТ",))
+                            cursor.execute("SELECT id FROM bet_types WHERE name = %s", ("РЕЗУЛЬТАТ_ПНП",))
                             bet_type_id = cursor.fetchone()[0]  # Получение значения первого столбца первой строки
                             # Вставка записи в таблицу odds
                             cursor.execute(
@@ -153,15 +153,10 @@ def xstavka_update_games(sport):
                 for i in range(0, len(HANDICAPS)):
                     if (HANDICAPS[i].get("T") == 7):
                         odd = HANDICAPS[i].get("C")
-                        bet_descript = '1 ' + str(HANDICAPS[i].get("P"))
+                        bet_descript = '1 +' + str(float(HANDICAPS[i].get("P"))) if HANDICAPS[i].get("P") is not None and float(HANDICAPS[i].get("P")) > 0 else '1 ' + str(float(HANDICAPS[i].get("P"))) if HANDICAPS[i].get("P") is not None else '1 0'
                     if (HANDICAPS[i].get("T") == 8):
                         odd = HANDICAPS[i].get("C")
-                        bet_descript = '2 ' + str(HANDICAPS[i].get("P"))
-                    if HANDICAPS[i].get("P") == None:
-                        if HANDICAPS[i].get("T") == 7:
-                            bet_descript = '1 0'
-                        else:
-                            bet_descript = '2 0'
+                        bet_descript = '2 +' + str(float(HANDICAPS[i].get("P"))) if HANDICAPS[i].get("P") is not None and float(HANDICAPS[i].get("P")) > 0 else '2 ' + str(float(HANDICAPS[i].get("P"))) if HANDICAPS[i].get("P") is not None else '2 0'
                     with connection.cursor() as cursor:
                         # Получение bet_type_id из таблицы bet_types
                         cursor.execute("SELECT id FROM bet_types WHERE name = %s", ("ФОРА",))
@@ -172,6 +167,7 @@ def xstavka_update_games(sport):
                                VALUES (%s, %s, %s, %s, %s);""",
                             (game_id, league_id, bet_type_id, odd, bet_descript)
                         )
+                        # print(bet_descript)
 
     except Exception as ex:
         print("[INFO] Error", ex)
