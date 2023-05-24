@@ -2,7 +2,7 @@ import requests
 
 
 def send_telegram(text: str):
-    token = '5842114499:AAFWr3inq9764dht5_p41hNbFxeZ7TGmmJY'
+    token = ''
     url = "https://api.telegram.org/bot"
     channel_id = '871286871'
     url += token
