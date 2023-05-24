@@ -6,34 +6,41 @@ import time
 
 
 while True:
-    update_db()
+    try:
+        update_db()
 
-    start_time = time.time()
+        start_time = time.time()
 
-    sports = ["Football", "Basketball", "Tennis", "Cybersport"]
+        sports = ["Football", "Basketball", "Tennis", "Cybersport"]
 
-    threads = []
+        threads = []
 
-    for sport in sports:
-        marathon_thread = threading.Thread(target=marathon_update_games, args=(sport,))
-        xstavka_thread = threading.Thread(target=xstavka_update_games, args=(sport,))
+        for sport in sports:
+            marathon_thread = threading.Thread(target=marathon_update_games, args=(sport,))
+            xstavka_thread = threading.Thread(target=xstavka_update_games, args=(sport,))
 
-        marathon_thread.start()
-        xstavka_thread.start()
+            marathon_thread.start()
+            xstavka_thread.start()
 
-        threads.append(marathon_thread)
-        threads.append(xstavka_thread)
+            threads.append(marathon_thread)
+            threads.append(xstavka_thread)
 
-    for thread in threads:
-        thread.join()
+        for thread in threads:
+            thread.join()
 
-    delete_not_repetitive()
 
-    find_bets()
+        delete_not_repetitive()
 
-    end_time = time.time()
-    execution_time = end_time - start_time
-    print(f"Время выполнения программы: {execution_time} секунд")
+        time.sleep(20)
+        find_bets()
 
-    time.sleep(4)
-    break
+        end_time = time.time()
+        execution_time = end_time - start_time
+        print(f"Время выполнения программы: {execution_time} секунд")
+
+        # time.sleep(30)
+    except Exception as ex:
+        print("[INFO] Error:", ex)
+    finally:
+        pass
+

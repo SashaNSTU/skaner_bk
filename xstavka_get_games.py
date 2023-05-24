@@ -1,5 +1,4 @@
 from get_leagues import get_leagues
-from get_games import get_games
 from config import host, user, password, db_name
 from datetime import datetime
 import psycopg2
@@ -59,7 +58,7 @@ def xstavka_update_games(sport):
                                         VALUES (%s, %s, %s);""",
                     (leagues["Value"][champ]["LI"], leagues["Value"][champ]["L"], fk_bookmaker_sport_id)
                     )
-                    print("[INFO] Data was successfully inserted")
+                    # print("[INFO] Data was successfully inserted")
                 else:
                     pass
 
@@ -82,7 +81,7 @@ def xstavka_update_games(sport):
                         VALUES (%s, %s, %s, %s, %s, %s, %s);""",
                         (game_id, date_game, team1, team2, league_id, sport,  bookmaker)
                     )
-                    print("[INFO] Data was successfully inserted", league_id)
+                    # print("[INFO] Data was successfully inserted", league_id)
 
 
 
@@ -133,10 +132,10 @@ def xstavka_update_games(sport):
                 for i in range(0, len(TOTALS)):
                     if (TOTALS[i].get("T") == 9):
                         odd = TOTALS[i].get("C")
-                        bet_descript = str(TOTALS[i].get("P")) + ' Б'
+                        bet_descript = str(float(TOTALS[i].get("P"))) + ' Б'
                     if (TOTALS[i].get("T") == 10):
                         odd = TOTALS[i].get("C")
-                        bet_descript = str(TOTALS[i].get("P")) + ' М'
+                        bet_descript = str(float(TOTALS[i].get("P"))) + ' М'
                     with connection.cursor() as cursor:
                         # Получение bet_type_id из таблицы bet_types
                         cursor.execute("SELECT id FROM bet_types WHERE name = %s", ("ТОТАЛ",))

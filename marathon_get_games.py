@@ -73,7 +73,7 @@ def marathon_update_games(sport):
                                         VALUES (%s, %s, %s);""",
                         (leagues_id, name_league, fk_bookmaker_sport_id)
                     )
-                    print("[INFO] Data was successfully inserted")
+                    # print("[INFO] Data was successfully inserted")
 
                 div_league_id = leagues.find("div", {"id": '\\"category' + str(leagues_id) + '\\"'})
                 div_game_id = div_league_id.find_all("div", {"data-event-treeid": True})
@@ -114,7 +114,7 @@ def marathon_update_games(sport):
                                                     VALUES (%s, %s, %s, %s, %s, %s, %s);""",
                             (digits, formatted_date, team1, team2, league_id, sport, bookmaker)
                         )
-                        print("[INFO] Data was successfully inserted", league_id)
+                        # print("[INFO] Data was successfully inserted", league_id)
                     # ODDS
                     RESULT = div.find_all('td', attrs={'data-market-type': '\\"RESULT_2WAY\\"'})
                     for i in range(0, len(RESULT)):
@@ -206,22 +206,14 @@ def marathon_update_games(sport):
                         if span_element:
                             odd = span_element.get_text()
                             if odd != '—':
-                                if (member_name[0] == '1' and i == 0):
+                                if (i == 0):
                                     bet_descript = TOTAL[i].contents[0].get_text(strip=True) if TOTAL[
                                         0].contents else ''
                                     bet_descript = bet_descript.replace('(', '').replace(')', '') + " М"
-                                if (member_name[0] == '1' and i == 1):
+                                if (i == 1):
                                     bet_descript = TOTAL[i].contents[0].get_text(strip=True) if HANDICAP[
                                         0].contents else ''
                                     bet_descript = bet_descript.replace('(', '').replace(')', '') + " Б"
-                                if (member_name[0] == '2' and i == 0):
-                                    bet_descript = TOTAL[i].contents[0].get_text(strip=True) if TOTAL[
-                                        0].contents else ''
-                                    bet_descript = bet_descript.replace('(', '').replace(')', '') + " Б"
-                                if (member_name[0] == '2' and i == 1):
-                                    bet_descript = TOTAL[i].contents[0].get_text(strip=True) if TOTAL[
-                                        0].contents else ''
-                                    bet_descript = bet_descript.replace('(', '').replace(')', '') + " М"
 
                                 with connection.cursor() as cursor:
                                     # Получение bet_type_id из таблицы bet_types
