@@ -66,11 +66,11 @@ def delete_not_repetitive():
             for j in range(i + 1, len(games)):
                 game2 = games[j]
                 similarity = jaccard_similarity(game1[0], game2[0])
-                if similarity > 0.74 and game1[1] == game2[1] and game1[2] != game2[2] and game1[3] == game2[3]:
+                if similarity > 0.8 and game1[1] == game2[1] and game1[2] != game2[2] and game1[3] == game2[3]:
+
                     result_games.append((game1[4], game1[5]))
                     result_games.append((game2[4], game2[5]))
                     find_games.append(((game1[4], game2[4]), (game1[2], game2[2])))
-
 
 
         with connection.cursor() as cursor:
@@ -90,7 +90,7 @@ def delete_not_repetitive():
                 cursor.execute(query)
                 # print("[INFO] Records deleted from 'games' table, except for specified records.")
 
-        time.sleep(30)
+
         find_bets(find_games)
     except Exception as ex:
         print("[INFO] Error", ex)
@@ -344,4 +344,3 @@ def find_bets(games):
     finally:
         # Закрытие соединения
         connection.close()
-

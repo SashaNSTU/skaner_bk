@@ -1,11 +1,11 @@
-from get_leagues import get_leagues
+from get_live_leagues import get_leagues
 from config import host, user, password, db_name
 from datetime import datetime
 import psycopg2
 import datetime
 
 
-def xstavka_update_games(sport):
+def xstavka_update_live_games(sport):
     try:
         connection = psycopg2.connect(
             host=host,
@@ -49,7 +49,7 @@ def xstavka_update_games(sport):
                 cursor.execute(
                     """SELECT league_id FROM leagues 
                     WHERE league_id = %s """,
-                    (leagues["Value"][champ]["LI"],)
+                    (leagues["Value"][champ].get("LI"),)
                 )
                 result = cursor.fetchone()
                 if result is None:
@@ -62,12 +62,10 @@ def xstavka_update_games(sport):
                 else:
                     pass
 
-                game_id = leagues["Value"][champ].get("CI")
+                game_id = leagues["Value"][champ].get("I")
                 team1 = leagues["Value"][champ].get("O1")
                 team2 = leagues["Value"][champ].get("O2")
-                timestamp = leagues["Value"][champ].get("S") - 4 * 3600
-                date_game = datetime.datetime.fromtimestamp(timestamp)
-                date_game = date_game.strftime('%m-%d %H:%M:%S')
+                date_game = 'LIVE'
                 if team1 is None or team2 is None or game_id is None:  # проверка на наличие значения
                     continue
                 with connection.cursor() as cursor:

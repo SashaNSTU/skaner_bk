@@ -1,5 +1,6 @@
+import time
 from datetime import datetime
-from get_leagues import get_leagues
+from get_live_leagues import get_leagues
 from config import host, user, password, db_name
 import psycopg2
 import re
@@ -21,7 +22,7 @@ months_dict = {
         'дек': 'December'
 }
 
-def marathon_update_games(sport):
+def marathon_update_live_games(sport):
     try:
         connection = psycopg2.connect(
             host=host,
@@ -31,6 +32,7 @@ def marathon_update_games(sport):
         )
         connection.autocommit = True
         bookmaker = 'marathonbet'
+        sport_live = sport + 'Live'
 
         with connection.cursor() as cursor:
             cursor.execute(
@@ -38,11 +40,11 @@ def marathon_update_games(sport):
                 INNER JOIN bookmaker_sports ON sports.id = bookmaker_sports.sport_id
                 INNER JOIN bookmakers ON bookmaker_sports.bookmaker_id = bookmakers.id
                 WHERE sports.sport_name = %s AND bookmakers.name_bookmaker = %s;""",
-                (sport, bookmaker)
+                (sport_live, bookmaker)
             )
-            sport_id = cursor.fetchone()[0]
+            sport_live_id = cursor.fetchone()[0]
 
-        leagues = get_leagues(bookmaker, sport_id)
+        leagues = get_leagues(bookmaker, sport_live_id)
 
         with connection.cursor() as cursor:
             cursor.execute(
@@ -51,7 +53,7 @@ def marathon_update_games(sport):
                 INNER JOIN bookmakers ON bookmaker_sports.bookmaker_id = bookmakers.id
                 INNER JOIN sports ON bookmaker_sports.sport_id = sports.id
                 WHERE bookmakers.name_bookmaker = %s AND sports.sport_name = %s;""",
-                (bookmaker, sport)
+                (bookmaker, sport_live)
             )
             result = cursor.fetchone()
             if result:
@@ -82,20 +84,7 @@ def marathon_update_games(sport):
                     game_id = div["data-event-treeid"]
                     game = div.find_all("div", class_=re.compile("command"))
                     member_name = [g.find("b").text[:1] for g in game]
-                    game_time = div.find("td", {"class": '\\"date'})
-                    date_str = game_time.text.strip()
-                    if (len(date_str) < 6):
-                        now = datetime.datetime.now()
-                        moscow_tz = pytz.timezone('Europe/Moscow')
-                        moscow_time = now.astimezone(moscow_tz)
-                        today_month_day = moscow_time.strftime("%m-%d")
-                        formatted_date = today_month_day + " " + date_str + ":00"
-                    else:
-                        for k, v in months_dict.items():
-                            date_str = date_str.replace(k, v)
-
-                        date = datetime.datetime.strptime(date_str, '%d %B %H:%M')
-                        formatted_date = date.strftime('%m-%d %H:%M:%S')
+                    date_game = 'LIVE'
                     digits = ''.join(filter(str.isdigit, game_id))
                     team_names = [g.find("span").text for g in game]
                     if (member_name[0] == '1'):
@@ -116,7 +105,7 @@ def marathon_update_games(sport):
                         cursor.execute(
                             """INSERT INTO games(game_id, date_game, name_team1, name_team2, league_id, sport_name, bookmaker_name) 
                                                     VALUES (%s, %s, %s, %s, %s, %s, %s);""",
-                            (digits, formatted_date, team1, team2, league_id, sport, bookmaker)
+                            (digits, date_game, team1, team2, league_id, sport, bookmaker)
                         )
                         # print("[INFO] Data was successfully inserted", league_id)
                     # ODDS
