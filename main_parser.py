@@ -31,8 +31,7 @@ while True:
 
         delete_not_repetitive()
 
-        time.sleep(20)
-        find_bets()
+
 
         end_time = time.time()
         execution_time = end_time - start_time
